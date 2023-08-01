@@ -1720,7 +1720,7 @@ EXTERN_C_BEGIN
       /* There seems to be some issues with trylock hanging on darwin.  */
       /* This should be looked into some more.                          */
 #     define NO_PTHREAD_TRYLOCK
-#     if TARGET_OS_IPHONE && !defined(NO_DYLD_BIND_FULLY_IMAGE)
+#     if (TARGET_OS_IPHONE || TARGET_OS_XROS) && !defined(NO_DYLD_BIND_FULLY_IMAGE)
         /* iPhone/iPad simulator */
 #       define NO_DYLD_BIND_FULLY_IMAGE
 #     endif
@@ -2302,7 +2302,7 @@ EXTERN_C_BEGIN
       /* FIXME: There seems to be some issues with trylock hanging on   */
       /* darwin. This should be looked into some more.                  */
 #     define NO_PTHREAD_TRYLOCK
-#     if TARGET_OS_IPHONE && !defined(NO_DYLD_BIND_FULLY_IMAGE)
+#     if (TARGET_OS_IPHONE || TARGET_OS_XROS) && !defined(NO_DYLD_BIND_FULLY_IMAGE)
 #       define NO_DYLD_BIND_FULLY_IMAGE
 #     endif
 #   endif
@@ -2432,7 +2432,7 @@ EXTERN_C_BEGIN
       /* FIXME: There seems to be some issues with trylock hanging on   */
       /* darwin. This should be looked into some more.                  */
 #     define NO_PTHREAD_TRYLOCK
-#     if TARGET_OS_IPHONE && !defined(NO_DYLD_BIND_FULLY_IMAGE)
+#     if (TARGET_OS_IPHONE || TARGET_OS_XROS) && !defined(NO_DYLD_BIND_FULLY_IMAGE)
 #       define NO_DYLD_BIND_FULLY_IMAGE
 #     endif
 #   endif
@@ -2671,7 +2671,7 @@ EXTERN_C_BEGIN
       /* There seems to be some issues with trylock hanging on darwin.  */
       /* This should be looked into some more.                          */
 #     define NO_PTHREAD_TRYLOCK
-#     if TARGET_OS_IPHONE && !defined(NO_DYLD_BIND_FULLY_IMAGE)
+#     if (TARGET_OS_IPHONE || TARGET_OS_XROS) && !defined(NO_DYLD_BIND_FULLY_IMAGE)
         /* iPhone/iPad simulator */
 #       define NO_DYLD_BIND_FULLY_IMAGE
 #     endif
