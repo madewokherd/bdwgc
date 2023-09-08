@@ -842,7 +842,7 @@ STATIC void GC_wait_for_gc_completion(GC_bool wait_for_all)
       UNLOCK();
       Sleep(0); /* yield */
       LOCK();
-    } while (GC_incremental && GC_collection_in_progress()
+    } while (GC_incremental && GC_collection_in_progress() && !GC_is_disabled()
              && (wait_for_all || old_gc_no == GC_gc_no));
   }
 }
