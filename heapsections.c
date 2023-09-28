@@ -15,7 +15,7 @@ void GC_foreach_heap_section(void* user_data, GC_heap_section_proc callback)
 	{
 		ptr_t sectionStart = GC_heap_sects[i].hs_start;
 		ptr_t sectionEnd = sectionStart + GC_heap_sects[i].hs_bytes;
-       
+
 		// Merge in contiguous sections.
 		// A heap block might start in one heap section and extend 
 		// into the next one. 
@@ -23,7 +23,16 @@ void GC_foreach_heap_section(void* user_data, GC_heap_section_proc callback)
 		{
 			++i;
 			sectionEnd = GC_heap_sects[i].hs_start + GC_heap_sects[i].hs_bytes;
-        }
+		}
+
+		callback(user_data, sectionStart, sectionEnd);
+
+/*
+		// Intentionally commented out
+		// In the future we might extend to report free/used blocks
+		// but for now we just report entire heap allocation sections, 
+		// to keep compatibility with il2cpp and avoid Memory Profiler 
+		// snapshot format change. 
 
 		while (sectionStart < sectionEnd)
 		{
@@ -31,27 +40,35 @@ void GC_foreach_heap_section(void* user_data, GC_heap_section_proc callback)
 			// which uses address as hash key to find block header.
 			hdr* hhdr = HDR(sectionStart);
 
+			ptr_t nextSectionStart = NULL;
 			if (IS_FORWARDING_ADDR_OR_NIL(hhdr))
 			{
 				// This pointer has no header registered in headers cache
 				// We skip one HBLKSIZE and attempt to get header for it
-				sectionStart += HBLKSIZE;
+				nextSectionStart = sectionStart + HBLKSIZE;
+				callback(user_data, sectionStart, nextSectionStart, GC_HEAPSECTION_FREE);
 			}
 			else if (HBLK_IS_FREE(hhdr))
 			{
 				// We have a header, and the block is marked as free
 				// Note: for "free" blocks "hb_sz" = the size in bytes of the whole block.
-				sectionStart += hhdr->hb_sz;
+				nextSectionStart = sectionStart + hhdr->hb_sz;
+				callback(user_data, sectionStart, nextSectionStart, GC_HEAPSECTION_FREE);
 			}
 			else
 			{
 				// This heap block is used, report it
 				// Note: for used blocks "hb_sz" = size in bytes, of objects in the block.
-				ptr_t nextSectionBlock = sectionStart + HBLKSIZE * OBJ_SZ_TO_BLOCKS(hhdr->hb_sz);
-				callback(user_data, sectionStart, nextSectionBlock);
-				sectionStart = nextSectionBlock;
+				ptr_t usedSectionEnd = sectionStart + hhdr->hb_sz;
+				nextSectionStart = sectionStart + HBLKSIZE * OBJ_SZ_TO_BLOCKS(hhdr->hb_sz);
+				callback(user_data, sectionStart, usedSectionEnd, GC_HEAPSECTION_USED);
+				if (nextSectionStart > usedSectionEnd)
+					callback(user_data, usedSectionEnd, nextSectionStart, GC_HEAPSECTION_PADDING);
 			}
+
+			sectionStart = nextSectionStart;
 		}
+*/
 	}
 }
 
