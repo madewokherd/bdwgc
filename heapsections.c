@@ -25,39 +25,55 @@ void GC_foreach_heap_section(void* user_data, GC_heap_section_proc callback)
 			sectionEnd = GC_heap_sects[i].hs_start + GC_heap_sects[i].hs_bytes;
 		}
 
-		while (sectionStart < sectionEnd)
+		ptr_t blockStart = sectionStart;
+		while (blockStart < sectionEnd)
 		{
 			// This does lookup into 2 level tree data structure,
 			// which uses address as hash key to find block header.
-			hdr* hhdr = HDR(sectionStart);
+			hdr* hhdr = HDR(blockStart);
 
-			ptr_t nextSectionStart = NULL;
 			if (IS_FORWARDING_ADDR_OR_NIL(hhdr))
 			{
 				// This pointer has no header registered in headers cache
 				// We skip one HBLKSIZE and attempt to get header for it
-				nextSectionStart = sectionStart + HBLKSIZE;
-				callback(user_data, sectionStart, nextSectionStart, GC_HEAP_SECTION_TYPE_FREE);
+				ptr_t blockEnd = blockStart + HBLKSIZE;
+
+				callback(user_data, blockStart, blockEnd, GC_HEAP_SECTION_TYPE_FREE);
+
+				blockStart = blockEnd;
 			}
 			else if (HBLK_IS_FREE(hhdr))
 			{
 				// We have a header, and the block is marked as free
 				// Note: for "free" blocks "hb_sz" = the size in bytes of the whole block.
-				nextSectionStart = sectionStart + hhdr->hb_sz;
-				callback(user_data, sectionStart, nextSectionStart, GC_HEAP_SECTION_TYPE_FREE);
+				ptr_t blockEnd = blockStart + hhdr->hb_sz;
+
+#if USE_MUNMAP
+				// Only report free block if it's still committed.
+				// Unmapped blocks are not committed.
+				if ((hhdr->hb_flags & WAS_UNMAPPED) != 0)
+				{
+					blockStart = blockEnd;
+					continue;
+				}
+#endif
+				callback(user_data, blockStart, blockEnd, GC_HEAP_SECTION_TYPE_FREE);
+
+				blockStart = blockEnd;
 			}
 			else
 			{
 				// This heap block is used, report it
 				// Note: for used blocks "hb_sz" = size in bytes, of objects in the block.
-				ptr_t usedSectionEnd = sectionStart + hhdr->hb_sz;
-				nextSectionStart = sectionStart + HBLKSIZE * OBJ_SZ_TO_BLOCKS(hhdr->hb_sz);
-				callback(user_data, sectionStart, usedSectionEnd, GC_HEAP_SECTION_TYPE_USED);
-				if (nextSectionStart > usedSectionEnd)
-					callback(user_data, usedSectionEnd, nextSectionStart, GC_HEAP_SECTION_TYPE_PADDING);
-			}
+				ptr_t blockEnd = blockStart + HBLKSIZE * OBJ_SZ_TO_BLOCKS(hhdr->hb_sz);
+				ptr_t usedBlocknEnd = blockStart + hhdr->hb_sz;
 
-			sectionStart = nextSectionStart;
+				callback(user_data, blockStart, usedBlocknEnd, GC_HEAP_SECTION_TYPE_USED);
+				if (blockEnd > usedBlocknEnd)
+					callback(user_data, usedBlocknEnd, blockEnd, GC_HEAP_SECTION_TYPE_PADDING);
+
+				blockStart = blockEnd;
+			}
 		}
 	}
 }
