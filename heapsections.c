@@ -34,23 +34,19 @@ void GC_foreach_heap_section(void* user_data, GC_heap_section_proc callback)
 
 			if (IS_FORWARDING_ADDR_OR_NIL(hhdr))
 			{
-				// This pointer has no header registered in headers cache
-				// We skip one HBLKSIZE and attempt to get header for it
-				ptr_t blockEnd = blockStart + HBLKSIZE;
-
-				callback(user_data, blockStart, blockEnd, GC_HEAP_SECTION_TYPE_FREE);
-
-				blockStart = blockEnd;
+				// This pointer has no header registered in headers cache.
+				// We skip one HBLKSIZE and attempt to get header for it.
+				// We don't report it, as we don't know is mapped or not.
+				blockStart = blockStart + HBLKSIZE;
 			}
 			else if (HBLK_IS_FREE(hhdr))
 			{
-				// We have a header, and the block is marked as free
+				// We have a header, and the block is marked as free.
 				// Note: for "free" blocks "hb_sz" = the size in bytes of the whole block.
 				ptr_t blockEnd = blockStart + hhdr->hb_sz;
 
 #if USE_MUNMAP
-				// Only report free block if it's still committed.
-				// Unmapped blocks are not committed.
+				// Only report free block if it's mapped.
 				if ((hhdr->hb_flags & WAS_UNMAPPED) != 0)
 				{
 					blockStart = blockEnd;
@@ -63,12 +59,13 @@ void GC_foreach_heap_section(void* user_data, GC_heap_section_proc callback)
 			}
 			else
 			{
-				// This heap block is used, report it
+				// This heap block is used, report it.
 				// Note: for used blocks "hb_sz" = size in bytes, of objects in the block.
 				ptr_t blockEnd = blockStart + HBLKSIZE * OBJ_SZ_TO_BLOCKS(hhdr->hb_sz);
 				ptr_t usedBlocknEnd = blockStart + hhdr->hb_sz;
 
-				callback(user_data, blockStart, usedBlocknEnd, GC_HEAP_SECTION_TYPE_USED);
+				if (usedBlocknEnd > blockStart)
+					callback(user_data, blockStart, usedBlocknEnd, GC_HEAP_SECTION_TYPE_USED);
 				if (blockEnd > usedBlocknEnd)
 					callback(user_data, usedBlocknEnd, blockEnd, GC_HEAP_SECTION_TYPE_PADDING);
 
